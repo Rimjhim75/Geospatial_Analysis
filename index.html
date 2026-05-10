@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Delhi Metro — Transit Time Cartogram</title>
+<meta name="description" content="Interactive travel-time cartogram for the Delhi Metro. Geography warped by transit accessibility."/>
+<meta property="og:title" content="Delhi Metro Transit Time Cartogram"/>
+<meta property="og:description" content="See Delhi through the lens of metro travel time. Geography warped by accessibility."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════ DESKTOP LAYOUT ══════════════════════ -->
+<div class="panel-card" id="panelCard">
+
+  <!-- LEFT PANEL -->
+  <div class="panel-left" id="panelLeft">
+    <div class="panel-header">
+      <div class="panel-title-row">
+        <div class="panel-brand">
+          <span class="brand-dot"></span>
+          <span class="brand-name">DMRC <em>Commute</em></span>
+        </div>
+        <button class="icon-btn" id="fullscreenButton" title="Fullscreen" aria-label="Fullscreen">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M7 3H4a1 1 0 00-1 1v3M13 3h3a1 1 0 011 1v3M7 17H4a1 1 0 01-1-1v-3M13 17h3a1 1 0 001-1v-3"/>
+          </svg>
+        </button>
+      </div>
+      <div class="panel-subtitle">Transit time warp</div>
+      <div class="panel-origin-row" id="panelOriginRow">
+        <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"><circle cx="8" cy="8" r="4"/><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        <span id="originLabel">Pinned near Rajiv Chowk</span>
+      </div>
+    </div>
+
+    <!-- Status / travel time callout -->
+    <div class="travel-callout" id="travelCallout" hidden>
+      <div class="travel-time-big" id="travelTimeBig">—</div>
+      <div class="travel-time-sub" id="travelTimeSub">from origin</div>
+    </div>
+
+    <!-- Reach score -->
+    <div class="reach-card" id="reachCard">
+      <div class="reach-header">
+        <span class="reach-label">60-MIN REACH</span>
+      </div>
+      <div class="reach-value-row">
+        <span class="reach-value" id="reachValue">—</span>
+        <span class="reach-denom" id="reachDenom">/ 261 stations</span>
+      </div>
+      <div class="reach-bar-wrap">
+        <div class="reach-bar-fill" id="reachBarFill"></div>
+      </div>
+      <div class="reach-pct" id="reachPct">—% of network</div>
+    </div>
+
+    <!-- Address search -->
+    <form class="search-form" id="searchForm" autocomplete="off">
+      <div class="search-row">
+        <input class="search-input" id="addressInput" type="text"
+          placeholder="Search Delhi station…" aria-label="Search station"/>
+        <button class="search-btn" id="searchButton" type="submit">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="9" cy="9" r="6"/><line x1="14" y1="14" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="search-meta" id="searchMeta"></div>
+      <div class="search-results" id="searchResults"></div>
+    </form>
+
+    <!-- Controls -->
+    <div class="controls-section">
+      <div class="controls-label">MAP CONTROLS</div>
+      <label class="toggle-row">
+        <span class="toggle-label">Warp</span>
+        <input type="checkbox" id="warpToggle" class="toggle-input" checked/>
+        <span class="toggle-pill"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Heatmap</span>
+        <input type="checkbox" id="heatmapToggle" class="toggle-input" checked/>
+        <span class="toggle-pill"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">60-min outline</span>
+        <input type="checkbox" id="outlineToggle" class="toggle-input"/>
+        <span class="toggle-pill"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Basemap</span>
+        <input type="checkbox" id="basemapToggle" class="toggle-input"/>
+        <span class="toggle-pill"></span>
+      </label>
+    </div>
+
+    <!-- Heatmap legend -->
+    <div class="heatmap-legend" id="heatmapLegend">
+      <div class="legend-gradient"></div>
+      <div class="legend-labels">
+        <span id="heatmapLegendMin">0m</span>
+        <span id="heatmapLegendMax">60m</span>
+      </div>
+    </div>
+
+    <!-- Zoom + share -->
+    <div class="map-actions">
+      <button class="action-btn" id="zoomInButton" title="Zoom in">+</button>
+      <button class="action-btn" id="zoomOutButton" title="Zoom out">−</button>
+      <div style="flex:1"></div>
+      <button class="action-btn share-btn" id="shareButton" title="Share">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="15" cy="4" r="2"/><circle cx="5" cy="10" r="2"/><circle cx="15" cy="16" r="2"/>
+          <line x1="7" y1="11" x2="13" y2="15"/><line x1="13" y1="5" x2="7" y2="9"/>
+        </svg>
+        Share
+      </button>
+    </div>
+
+    <!-- Share panel -->
+    <div class="share-panel" id="sharePanel" hidden>
+      <button class="share-row" id="copyLinkAction">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13H7a4 4 0 010-8h3M10 7h3a4 4 0 010 8h-3M8 10h4"/></svg>
+        Copy link
+      </button>
+      <button class="share-row" id="downloadImageAction">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3v10M6 9l4 4 4-4M4 17h12"/></svg>
+        Download image
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="panel-footer">
+      <div class="footer-credits" id="footerCredits">Data: DMRC GTFS · OpenStreetMap · MDS Cartogram</div>
+    </div>
+  </div><!-- /panel-left -->
+
+  <!-- MAP CANVAS -->
+  <div class="map-wrap" id="mapWrap">
+    <canvas id="mapCanvas"></canvas>
+    <div class="map-status" id="statusText">Loading Delhi Metro data…</div>
+    <div class="map-pin-hint" id="pinHint">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><circle cx="10" cy="8" r="4"/><path d="M10 18C10 18 4 13 4 8a6 6 0 0112 0c0 5-6 10-6 10z" fill-rule="evenodd" clip-rule="evenodd"/></svg>
+      Tap or hover the map to explore travel times. Click to pin origin.
+    </div>
+    <!-- Zoom: mobile -->
+    <div class="map-zoom-float">
+      <button class="zoom-float-btn" id="zoomInFloat">+</button>
+      <button class="zoom-float-btn" id="zoomOutFloat">−</button>
+    </div>
+  </div><!-- /map-wrap -->
+
+</div><!-- /panel-card -->
+
+<!-- ══════════════════════ MOBILE SHEET ══════════════════════ -->
+<div class="mobile-sheet" id="mobileSheet">
+  <div class="mobile-sheet-handle" id="mobileSheetToggle">
+    <div class="handle-bar"></div>
+    <div class="mobile-header-row">
+      <div class="mobile-brand">DMRC <em>Commute</em></div>
+      <div class="mobile-actions">
+        <button class="icon-btn-sm" id="mobileLocateButton" title="My location">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="4"/><line x1="10" y1="2" x2="10" y2="5"/><line x1="10" y1="15" x2="10" y2="18"/><line x1="2" y1="10" x2="5" y2="10"/><line x1="15" y1="10" x2="18" y2="10"/></svg>
+        </button>
+        <button class="icon-btn-sm" id="mobileShareButton" title="Share">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="15" cy="4" r="2"/><circle cx="5" cy="10" r="2"/><circle cx="15" cy="16" r="2"/><line x1="7" y1="11" x2="13" y2="15"/><line x1="13" y1="5" x2="7" y2="9"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-origin-row">
+      <svg viewBox="0 0 16 16" fill="currentColor" width="11" height="11"><circle cx="8" cy="8" r="4"/></svg>
+      <span id="mobileOriginTitle">Pinned near Rajiv Chowk</span>
+      <button class="clear-btn" id="mobileClearButton">Clear</button>
+    </div>
+  </div>
+
+  <div class="mobile-sheet-body" id="mobileSheetBody">
+    <div class="mobile-status-text" id="mobileStatusText">Hover or tap map to explore.</div>
+    <div class="mobile-travel-callout" id="mobileTravelCallout" hidden>
+      <span class="mobile-travel-time" id="mobileTravelTime">—</span>
+      <span class="mobile-travel-label">away</span>
+    </div>
+
+    <!-- Mobile reach -->
+    <div class="mobile-reach-row">
+      <span class="mobile-reach-val" id="mobileReachValue">—</span>
+      <span class="mobile-reach-meta" id="mobileReachMeta">stations within 60 min</span>
+    </div>
+    <div class="reach-bar-wrap" style="margin:6px 0 12px">
+      <div class="reach-bar-fill" id="mobileReachBarFill"></div>
+    </div>
+
+    <!-- Mobile search -->
+    <form class="search-form mobile-search-form" id="mobileSearchForm" autocomplete="off">
+      <div class="search-row">
+        <input class="search-input" id="mobileAddressInput" type="text"
+          placeholder="Search Delhi station…" aria-label="Search station"/>
+        <button class="search-btn" id="mobileSearchButton" type="submit">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="6"/><line x1="14" y1="14" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="search-meta" id="mobileSearchMeta"></div>
+      <div class="search-results" id="mobileSearchResults"></div>
+    </form>
+
+    <!-- Mobile controls -->
+    <div class="controls-section">
+      <div class="controls-label">MAP CONTROLS</div>
+      <label class="toggle-row">
+        <span class="toggle-label">Warp</span>
+        <input type="checkbox" id="mobileWarpToggle" class="toggle-input" checked/>
+        <span class="toggle-pill"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Heatmap</span>
+        <input type="checkbox" id="mobileHeatmapToggle" class="toggle-input" checked/>
+        <span class="toggle-pill"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">60-min outline</span>
+        <input type="checkbox" id="mobileOutlineToggle" class="toggle-input"/>
+        <span class="toggle-pill"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Basemap</span>
+        <input type="checkbox" id="mobileBasemapToggle" class="toggle-input"/>
+        <span class="toggle-pill"></span>
+      </label>
+    </div>
+
+    <!-- Heatmap legend mobile -->
+    <div class="heatmap-legend">
+      <div class="legend-gradient"></div>
+      <div class="legend-labels">
+        <span>0m</span><span>60m</span>
+      </div>
+    </div>
+
+    <div class="panel-footer" style="margin-top:8px">
+      <div class="footer-credits">Data: DMRC GTFS · OpenStreetMap · MDS Cartogram</div>
+    </div>
+  </div><!-- /mobile-sheet-body -->
+</div><!-- /mobile-sheet -->
+
+<!-- Mobile map help -->
+<div class="mobile-map-help" id="mobileMapHelp">
+  <div class="mobile-map-instructions" id="mobileMapInstructions">
+    <div class="instructions-text">
+      <strong>Tap the map</strong> to pin a travel-time origin.<br/>
+      <small>Geography warps by metro accessibility.</small>
+    </div>
+    <button class="locate-btn-inline" id="mobileInstructionsLocateButton">
+      Use my location
+    </button>
+  </div>
+  <div class="mobile-help-bubble" id="mobileHelpBubble" hidden>?</div>
+</div>
+
+<script src="app.js"></script>
+<script src="app_extension.js"></script>
+</body>
+</html>
